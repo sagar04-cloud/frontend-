@@ -65,12 +65,15 @@ function timeAgo(dateString) {
 // Health Checker
 async function updateServerStatus() {
   const health = await api.checkHealth();
+  const currentUrl = api.getBackendUrl();
+  const isLocal = currentUrl.includes("localhost") || currentUrl.includes("127.0.0.1");
+
   if (health.connected) {
     elements.statusPill.classList.remove("offline");
-    elements.statusText.textContent = "Backend Live :5000";
+    elements.statusText.textContent = isLocal ? "Backend Live :5000" : "Railway Connected";
   } else {
     elements.statusPill.classList.add("offline");
-    elements.statusText.textContent = "Backend Offline";
+    elements.statusText.textContent = "Offline (Click to set URL)";
   }
 }
 
@@ -396,6 +399,28 @@ function initFilters() {
 
 // Initial Boot
 async function initApp() {
+  if (elements.statusPill) {
+    elements.statusPill.style.cursor = "pointer";
+    elements.statusPill.title = "Click to configure or view backend URL";
+    elements.statusPill.addEventListener("click", () => {
+      const current = api.getBackendUrl();
+      const input = prompt(
+        "Backend API URL:\n" +
+          current +
+          "\n\nEnter your deployed Railway URL (e.g., https://your-app.up.railway.app):\nLeave empty to use default/localhost.",
+        current.includes("localhost") ? "" : current
+      );
+      if (input !== null) {
+        api.setBackendUrl(input);
+        showToast("Backend URL updated. Reconnecting...", "info");
+        updateServerStatus();
+        fetchAndDisplayPosts();
+        loadStats();
+        loadContributors();
+      }
+    });
+  }
+
   await updateServerStatus();
   initComposer();
   initFilters();

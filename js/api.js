@@ -1,15 +1,65 @@
 /**
  * FB Application API Client
  * Manages communication with the Express backend service,
- * with graceful fallback to cached/mock data if the backend is unreachable.
+ * supporting dynamic Railway cloud backend connection, local development,
+ * and persistent URL overrides via localStorage.
  */
 
-const API_BASE = (typeof window !== "undefined" && window.location.origin && !window.location.origin.startsWith("file://"))
-  ? `${window.location.origin}/api`
-  : "http://localhost:5000/api";
+import { env } from "./env.js";
+
+function resolveApiBase() {
+  // 1. Check if user configured a custom URL in localStorage (via web UI)
+  if (typeof window !== "undefined" && window.localStorage) {
+    const saved = localStorage.getItem("FB_BACKEND_URL");
+    if (saved && saved.trim() !== "") {
+      const clean = saved.trim().replace(/\/+$/, "");
+      return clean.endsWith("/api") ? clean : `${clean}/api`;
+    }
+  }
+
+  // 2. Check if API_BASE_URL is set in env.js
+  if (env.API_BASE_URL && env.API_BASE_URL.trim() !== "") {
+    const clean = env.API_BASE_URL.trim().replace(/\/+$/, "");
+    return clean.endsWith("/api") ? clean : `${clean}/api`;
+  }
+
+  // 3. Check if running on localhost / file protocol
+  if (typeof window !== "undefined" && window.location) {
+    const host = window.location.hostname;
+    if (host === "localhost" || host === "127.0.0.1" || window.location.protocol === "file:") {
+      return "http://localhost:5000/api";
+    }
+    // 4. Default relative /api (useful if using Vercel rewrites)
+    return `${window.location.origin}/api`;
+  }
+
+  return "http://localhost:5000/api";
+}
+
+let API_BASE = resolveApiBase();
 
 export const api = {
   isBackendConnected: false,
+
+  /**
+   * Get the current active API base URL
+   */
+  getBackendUrl() {
+    return API_BASE;
+  },
+
+  /**
+   * Update the active backend URL and persist in localStorage
+   */
+  setBackendUrl(url) {
+    if (!url || url.trim() === "") {
+      localStorage.removeItem("FB_BACKEND_URL");
+    } else {
+      let clean = url.trim().replace(/\/+$/, "");
+      localStorage.setItem("FB_BACKEND_URL", clean);
+    }
+    API_BASE = resolveApiBase();
+  },
 
   /**
    * Check if backend server is responsive
