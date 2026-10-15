@@ -320,8 +320,8 @@ async function fetchAndDisplayPosts() {
     console.error("Fetch error:", err);
     elements.postsFeed.innerHTML = `
       <div class="card" style="text-align: center; padding: 2rem; color: var(--status-danger);">
-        <p><strong>Connection Notice:</strong> Unable to connect to backend server at http://localhost:5000</p>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">Ensure the backend is running with: <code>npm run dev</code> inside <code>backend/</code> folder.</p>
+        <p><strong>Connection Notice:</strong> Unable to connect to backend server at <code>${api.getBackendUrl()}</code></p>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">Click the status badge in the top navigation bar to configure or update the backend URL.</p>
       </div>
     `;
   }
